@@ -1,0 +1,125 @@
+name: Sync from Gitee
+
+# 这套机制是照 agent-privacy-router 那份搬过来的，三条有意约定原样保留：
+#   1. 只做快进：两边一分叉就地失败并喊出来，**绝不 force**
+#   2. 先验后推：同步下来的树要先跑通 check.py，绿了才允许推
+#   3. GITHUB_TOKEN 推不动 .github/workflows/ 下的文件 —— 见下面的预检步骤
+#
+# 与主项目那份的两处差异：
+#   * 分支是 main 不是 master（本仓库两边都叫 main）
+#   * 仓库地址与体检命令照着本仓库改过
+#
+# 前置条件（新仓库不会自动拥有，必须手动做一次）：
+#   * GitHub 侧存在同名空仓库
+#   * **本文件必须由人手动 push 到 GitHub**，不能指望同步作业把它带过去 ——
+#     它没有权限改 .github/workflows/
+#   * Gitee 仓库是公开的，所以不需要任何 secret，只用 GITHUB_TOKEN
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gitee-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - name: Checkout main（要全历史，才判断得了快进）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 从 Gitee 取 main
+        run: |
+          set -euo pipefail
+          git remote add gitee https://gitee.com/playing-with-ai-x/shiftbook.git
+          git fetch --no-tags gitee main
+          echo "GitHub main: $(git rev-parse --short HEAD)"
+          echo "Gitee main : $(git rev-parse --short gitee/main)"
+
+      - name: 快进到 Gitee 的位置（分叉就失败，绝不 force）
+        run: |
+          set -euo pipefail
+          before=$(git rev-parse HEAD)
+          # 四种情形分开处理：只写 merge --ff-only 的话，
+          # "相等"和"GitHub 反而领先"都会被当成成功，但含义完全不同。
+          if git merge-base --is-ancestor HEAD gitee/main; then
+            git merge --ff-only gitee/main
+            after=$(git rev-parse HEAD)
+            if [ "$before" = "$after" ]; then
+              echo "已经是最新（$before），本次无需同步。"
+              echo "SYNCED=0" >> "$GITHUB_ENV"
+            else
+              echo "需要同步：$before -> $after"
+              echo "SYNCED=1" >> "$GITHUB_ENV"
+              echo "SYNCED_FROM=$(git rev-parse --short "$before")" >> "$GITHUB_ENV"
+              echo "SYNCED_TO=$(git rev-parse --short "$after")" >> "$GITHUB_ENV"
+            fi
+          elif git merge-base --is-ancestor gitee/main HEAD; then
+            echo "::warning::GitHub 比 Gitee 更新（有人直接提交到了 GitHub）。"
+            echo "  本 workflow 只从 Gitee 单向同步，不会回推。"
+            echo "  请把这些提交也补到 Gitee，否则两边会越来越远。"
+            echo "SYNCED=0" >> "$GITHUB_ENV"
+          else
+            echo "::error::GitHub 与 Gitee 已经分叉，本 workflow 不会强行覆盖。"
+            echo "  请人工确认：在 Gitee 侧 rebase，或在这边手动合并后再跑一次。"
+            exit 1
+          fi
+
+      - name: 预检：这次同步有没有动 .github/workflows/
+        if: env.SYNCED == '1'
+        run: |
+          set -euo pipefail
+          touched=$(git diff --name-only "$SYNCED_FROM..$SYNCED_TO" -- .github/workflows/ || true)
+          if [ -n "$touched" ]; then
+            echo "::error::这次要同步的提交改了 .github/workflows/ 下的文件，GITHUB_TOKEN 推不动它们。"
+            echo "  涉及："
+            echo "$touched" | sed 's/^/    /'
+            echo "  在开发机上直接用 PAT 推一次 GitHub 即可（token 需要有 workflow scope）："
+            echo "    git push github main:main"
+            echo "  推完之后本 workflow 会恢复为正常空转。"
+            exit 1
+          fi
+          echo "预检通过：这次没动 workflow 文件。"
+
+      - name: 先验（绿了才允许推）
+        if: env.SYNCED == '1'
+        run: |
+          set -euo pipefail
+          python check.py
+
+      - name: 推送到 main
+        if: env.SYNCED == '1'
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
+          echo "已同步 $SYNCED_FROM -> $SYNCED_TO"
+
+      - name: 小结
+        if: always()
+        run: |
+          {
+            echo "### Gitee -> GitHub 同步"
+            echo ""
+            if [ "${SYNCED:-0}" = "1" ]; then
+              echo "- 同步 \`$SYNCED_FROM\` -> \`$SYNCED_TO\`（先跑通体检再推）"
+            else
+              echo "- 无需同步（GitHub 已与 Gitee 一致）"
+            fi
+            echo "- Gitee: https://gitee.com/playing-with-ai-x/shiftbook"
+          } >> "$GITHUB_STEP_SUMMARY"

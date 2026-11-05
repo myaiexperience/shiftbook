@@ -1,0 +1,38 @@
+name: CI
+
+# 为什么既有 push 又有 schedule
+# ------------------------------
+# GITHUB_TOKEN 推上来的提交**不会再触发 push 事件**。而每次 Gitee→GitHub 同步用的
+# 正是 GITHUB_TOKEN，所以只写 on.push 的话，同步过来的提交一次 CI 都跑不到。
+# 加一条每日定时，等于给那些"悄悄进来"的提交补一次体检。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "43 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.12", "3.13"]
+    # GitHub 的 Windows runner 默认 cp1252，打印中文会直接 UnicodeEncodeError。
+    # 这个坑在另一个仓库里踩过：本机全绿，CI 红了四次。
+    env:
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 自检（单元测试 + 零依赖 + 泄露面审计）
+        run: python check.py
