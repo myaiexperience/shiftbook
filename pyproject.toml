@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shiftbook"
+version = "0.1.0"
+description = "Your AI engineer, on your shift. 值班本 —— 让 AI 记住你为什么那样改。"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "playing-with-ai-x" }]
+keywords = ["homelab", "ops", "agent", "memory", "runbook"]
+# 运行时零第三方依赖。check.py 会核对这一行确实为空。
+dependencies = []
+
+[project.urls]
+Homepage = "https://gitee.com/playing-with-ai-x/shiftbook"
+
+[project.scripts]
+shiftbook = "shiftbook.cli:main"
+
+[tool.setuptools]
+packages = ["shiftbook"]
+
+[tool.setuptools.package-data]
+shiftbook = ["data/lessons/*.md"]

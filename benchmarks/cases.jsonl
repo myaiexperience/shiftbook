@@ -1,0 +1,10 @@
+{"query": "docker compose 文件改完，启动失败", "device": "nas", "expect_top": ["exp-seed-compose-config-check"]}
+{"query": "改了 AdGuard 配置，重启之后改动没了", "device": "nas", "expect_top": ["exp-seed-stop-before-edit-config"]}
+{"query": "从 macvlan 切到 ipvlan，容器连不上", "device": "nas", "expect_top": ["exp-seed-network-driver-export-first", "exp-seed-rename-needs-network-recreate"]}
+{"query": "改防火墙规则之后 ssh 断了", "device": "pc", "expect_top": ["exp-seed-firewall-change-rollback-timer"]}
+{"query": "磁盘满了 no space left on device", "device": "nas", "expect_top": ["exp-seed-disk-full-check-logs-first"]}
+{"query": "端口被占用 address already in use", "device": "nas", "expect_top": ["exp-seed-port-conflict-find-owner"]}
+{"query": "备份怎么验证能不能恢复", "device": "nas", "expect_top": ["exp-seed-test-restore-not-just-backup"]}
+{"query": "容器里的定时任务不执行了", "device": "nas", "expect_top": ["exp-seed-no-cron-inside-container"]}
+{"query": "升级镜像之后行为变了，怎么回滚", "device": "nas", "expect_top": ["exp-seed-pin-image-version", "exp-seed-snapshot-before-upgrade"]}
+{"query": "挂载目录 Permission denied", "device": "nas", "expect_top": ["exp-seed-volume-uid-gid"]}
