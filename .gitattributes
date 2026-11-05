@@ -1,0 +1,16 @@
+# 行尾统一用 LF。
+# 不钉死的话，Windows 上 core.autocrlf=true 会把工作区改成 CRLF，
+# 每次 diff 都在喊 "LF will be replaced by CRLF"，而且脚本类文件一旦带 CRLF，
+# 在 Linux runner 上跑会出莫名其妙的错（`\r` 混进 shebang / 命令结尾）。
+* text=auto eol=lf
+
+*.py     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.jsonl  text eol=lf
+*.toml   text eol=lf
+
+*.png    binary
+*.jpg    binary
