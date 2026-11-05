@@ -6,6 +6,9 @@
 Turn ops experience into Markdown cards, and surface them **before** your agent
 drafts a plan. Zero dependencies, one directory, one stdlib CLI.
 
+**Live demo**: [shiftbook on ModelScope Studio](https://www.modelscope.cn/studios/xysrai/shiftbook-demo)
+— no install, no setup; watch "record one lesson → surface it before the plan".
+
 ---
 
 ## You kept what you changed. Never why.

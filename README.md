@@ -6,6 +6,9 @@
 把运维经验落成 Markdown 卡片，在 Agent 给出方案**之前**检索注入。
 零第三方依赖，一个目录，一个标准库 CLI。
 
+**在线演示**：[值班本 · 创空间 Demo](https://www.modelscope.cn/studios/xysrai/shiftbook-demo)
+—— 不装不配，点开就能看到「记一条 → 规划前带出来」的全过程。
+
 ---
 
 ## 你改过什么，都留下了。为什么改，没有。
